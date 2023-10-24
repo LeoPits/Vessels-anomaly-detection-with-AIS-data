@@ -1,0 +1,14 @@
+tutorial/
+paper/
+Dataset/
+Python_MT_AISdebs2018/
+paper/
+incdbscan-master/
+concavity-master/
+/golfo_messico_AIS/Dataset
+**/golfo_messico_AIS/*.pkl
+**/NOAA_Office for Coastal Management_AIS/*.pkl
+**/NOAA_Office for Coastal Management_AIS
+/NOAA_Office for Coastal Management_AIS/Dataset
+
+
