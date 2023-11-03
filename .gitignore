@@ -5,6 +5,7 @@ Python_MT_AISdebs2018/
 paper/
 incdbscan-master/
 concavity-master/
+MT-AIS-DEBS2018/
 /golfo_messico_AIS/Dataset
 **/golfo_messico_AIS/*.pkl
 **/NOAA_Office for Coastal Management_AIS/*.pkl
