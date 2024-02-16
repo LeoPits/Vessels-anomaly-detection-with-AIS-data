@@ -10,6 +10,6 @@ MT-AIS-DEBS2018/
 **/golfo_messico_AIS/*.pkl
 **/NOAA_Office for Coastal Management_AIS/*.pkl
 **/NOAA_Office for Coastal Management_AIS
-/NOAA_Office for Coastal Management_AIS/Dataset
+**/NOAA_Office for Coastal Management_AIS/Dataset
 
 
