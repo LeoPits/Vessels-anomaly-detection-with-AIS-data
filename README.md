@@ -1,4 +1,4 @@
-![image](https://github.com/LeoPits/AIS_anomaly_detection/assets/19689590/a2080f34-264c-442d-8f88-a7cce5cc984d)# AIS_anomaly_detection
+# AIS_anomaly_detection
 ## Introduction
 We takes inspiration from  TREAD* (Traffic Route Extraction and Anomaly Detection)[1], that
 learns a statistical model for maritime traffic from AIS data in an unsupervised way
