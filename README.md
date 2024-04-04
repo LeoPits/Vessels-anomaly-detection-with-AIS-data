@@ -1,4 +1,4 @@
-# AIS_anomaly_detection
+# Vessels anomaly detection with AIS data
 ## Introduction
 We takes inspiration from  TREAD* (Traffic Route Extraction and Anomaly Detection)[1], that
 learns a statistical model for maritime traffic from AIS data in an unsupervised way
