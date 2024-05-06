@@ -11,5 +11,6 @@ MT-AIS-DEBS2018/
 **/NOAA_Office for Coastal Management_AIS/*.pkl
 **/NOAA_Office for Coastal Management_AIS/Dataset
 **/NOAA_Office for Coastal Management_AIS/analisi
+*.pkl
 
 
