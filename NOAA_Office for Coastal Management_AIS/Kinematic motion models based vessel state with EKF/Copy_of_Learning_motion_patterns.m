@@ -3,7 +3,7 @@ clear;
 close all;
 clc;
 % 
-%info=parquetinfo('Dati Danimarca pre-processati da AIA\denmark_2023-06-05_downsampled.parquet')
+info=parquetinfo('Dati Danimarca pre-processati da AIA\denmark_2023-06-05_downsampled.parquet')
 %select only one ship from the non-interpolated dataset.
 %  create a row filter base uniique identifier "vid"
 rf = rowfilter(["vid"]);% seleziono solo una 

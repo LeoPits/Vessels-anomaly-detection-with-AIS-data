@@ -76,9 +76,9 @@ state_vector=[state_vector;zeros(2,N)];
 
 % Create an extended Kalman filter object
 ekf = extendedKalmanFilter('HasAdditiveMeasurementNoise',true);
-ekf.StateTransitionFcn = @(x,u)stateModel(x,Ts);
+ekf.StateTransitionFcn = @(x,u)stateModelCT(x,Ts);
 ekf.MeasurementFcn =  @(x,u)measureModel(x);
-ekf.StateTransitionJacobianFcn =@(x,u)stateTransitionJacobianFcn(x,Ts);
+ekf.StateTransitionJacobianFcn =@(x,u)stateTransitionJacobianFcnCT(x,Ts);
 % Set initial state covariance and process/measurement noise
 ekf.StateCovariance=diag([1e-5,1e-5,1e-5,1e-5,1e-5,1e-5]);  % Covarianza iniziale
 ekf.ProcessNoise=diag([1e-5,1e-5,1e-5,1e-5,1e-6,1e-6]);

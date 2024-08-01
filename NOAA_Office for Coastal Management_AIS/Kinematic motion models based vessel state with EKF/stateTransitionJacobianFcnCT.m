@@ -1,5 +1,5 @@
 
-function F = stateTransitionJacobianFcn(state, dt)
+function F = stateTransitionJacobianFcnCT(state, dt)
     % Extract current state variables
     px = state(1);
     py = state(2);

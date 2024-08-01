@@ -1,4 +1,4 @@
-function stateNext = stateModel(state, dt)
+function stateNext = stateModelCT(state, dt)
     % Extract current state variables
     px = state(1);        % Current x position
     py = state(2);        % Current y position

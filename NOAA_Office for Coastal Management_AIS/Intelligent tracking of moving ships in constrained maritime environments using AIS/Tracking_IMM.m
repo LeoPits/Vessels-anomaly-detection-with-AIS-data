@@ -1,4 +1,7 @@
 %% Tracking IMM
+clear;
+close all;
+clc;
 
 % Define simulation parameters
 dt = 1; % Time step (s)
@@ -364,6 +367,7 @@ for k = 2:numSteps
     % Measurement
     z(:,k) = H * x_true(:,k) + mvnrnd(zeros(2,1), R)';
 end
+%%
 
 % IMM filter loop
 for k = 1:numSteps
