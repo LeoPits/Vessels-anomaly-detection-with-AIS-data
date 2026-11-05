@@ -61,5 +61,7 @@ def test_waypoint_map_one_geojson_per_waypoint():
     })
     m = waypoint_map(hulls)
     assert isinstance(m, folium.Map)
+    html = m.get_root().render()
+    assert "World_Ocean_Base" in html and "tile.openstreetmap.org" not in html  # OSM blocks file:// maps
     geojsons = [c for c in m._children.values() if isinstance(c, folium.GeoJson)]
     assert len(geojsons) == 2

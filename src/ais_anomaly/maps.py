@@ -2,6 +2,11 @@
 
 import folium
 
+BASEMAP = "Esri.OceanBasemap"
+"""Background tiles for every map. OpenStreetMap answers "Access blocked" to maps opened from a
+file or inside VS Code (no Referer header); CartoDB needs an API key; Esri's ocean basemap works
+without either and shows bathymetry."""
+
 
 def waypoint_map(hulls, center=(21, -158), zoom=8):
     """Folium map with one GeoJson polygon per waypoint and a popup with its name.
@@ -9,7 +14,7 @@ def waypoint_map(hulls, center=(21, -158), zoom=8):
     hulls: DataFrame with columns "name" (str) and "hull" (shapely geometry), as returned by
     ais_anomaly.routes.cluster_waypoints. Returns the folium.Map.
     """
-    m = folium.Map(center, zoom_start=zoom)  # OpenStreetMap: CartoDB tiles now need an API key
+    m = folium.Map(center, zoom_start=zoom, tiles=BASEMAP)
     for name, hull in zip(hulls["name"], hulls["hull"]):
         folium.GeoJson(hull).add_child(folium.Popup(name)).add_to(m)
     return m
