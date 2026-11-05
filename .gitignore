@@ -16,3 +16,8 @@ MT-AIS-DEBS2018/
 
 /NOAA_Office for Coastal Management_AIS/Dati Danimarca pre-processati da AIA
 /Dati Danimarca pre-processati da AIA
+
+# python-work layout
+data/
+*.egg-info/
+.pytest_cache/

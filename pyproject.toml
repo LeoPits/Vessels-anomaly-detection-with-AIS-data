@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ais-anomaly"
+version = "0.1.0"
+description = "Vessel route extraction, motion models and anomaly detection on AIS data"
+requires-python = ">=3.11"
+# Dependencies are managed by environment.yml (conda-forge), see README.
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,37 @@
+name: ais
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  # core
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - pyarrow
+  # geo
+  - geopandas
+  - shapely>=2
+  - pyproj
+  - movingpandas
+  - cartopy
+  - contextily
+  - geodatasets
+  # plotting
+  - matplotlib
+  - folium
+  - holoviews
+  - geoviews
+  - hvplot
+  - geoplot
+  # estimation
+  - casadi
+  # tooling
+  - tqdm
+  - jupyter
+  - ipykernel
+  - nbstripout
+  - pytest
+  - pip
+  - pip:
+      - -e .
