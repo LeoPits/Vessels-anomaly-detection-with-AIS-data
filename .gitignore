@@ -21,3 +21,5 @@ MT-AIS-DEBS2018/
 data/
 *.egg-info/
 .pytest_cache/
+__pycache__/
+*.pyc
