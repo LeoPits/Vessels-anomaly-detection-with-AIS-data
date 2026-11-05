@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import pandas as pd
 from shapely import Point
 
@@ -109,6 +110,34 @@ def test_grid_snapping_bounds_dbscan_size_on_dense_ports():
     assert len(hulls) == 2
     assert (labels[:60_000] != -1).all()
     assert len(np.unique(candidates[["LAT", "LON"]].round(3), axis=0)) < 200  # what DBSCAN actually sees
+
+
+def _corridor(n_trips, rng, lat0=21.0, lon_offset=0.0, trip0=0):
+    """Trips along the same east-west corridor, ~1 km of lateral spread."""
+    rows = []
+    for k in range(n_trips):
+        lon = np.linspace(-158.0, -157.0, 60) + lon_offset
+        lat = lat0 + rng.normal(0, 0.005, 60)
+        rows.append(pd.DataFrame({"trip": trip0 + k, "LAT": lat, "LON": lon}))
+    return pd.concat(rows, ignore_index=True)
+
+
+def test_score_route_flags_the_trip_off_the_corridor():
+    rng = np.random.default_rng(0)
+    normal = _corridor(30, rng)
+    detour = _corridor(1, rng, lat0=21.15, trip0=99)  # ~17 km north of everybody else
+    scored = routes.score_route(pd.concat([normal, detour], ignore_index=True), percentile=5)
+    by_trip = scored.groupby("trip")["anomaly"].mean()
+    assert by_trip[99] > 0.9  # the detour is almost entirely anomalous
+    assert by_trip.drop(99).mean() < 0.05
+    assert scored["anomaly"].mean() == pytest.approx(0.05, abs=0.01)
+
+
+def test_score_route_subsamples_large_routes():
+    rng = np.random.default_rng(1)
+    big = _corridor(200, rng)  # 12,000 reports
+    scored = routes.score_route(big, max_fit=2000)
+    assert len(scored) == len(big) and scored["density"].gt(0).all()
 
 
 def test_route_kde_peaks_on_the_data():

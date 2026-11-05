@@ -12,7 +12,7 @@ from shapely.geometry import MultiPoint
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 
-from .geo import haversine
+from .geo import haversine, to_utm
 
 NO_WAYPOINT = "-1"
 OPEN_SEA = "SEA"  # route end where the track starts or ends at sea
@@ -142,6 +142,33 @@ def extract_routes(vessel, loops=False, open_ends=False):
         route["Route"] = f"{before}-{after}"
         found.append(route.reset_index())
     return found
+
+
+def score_route(route, percentile=5, max_fit=5000, seed=0):
+    """Anomaly score of every report of one route, from the KDE of all its positions (TREAD).
+
+    ``route`` holds the reports of one route (all trips), with LAT/LON. Positions
+    go to UTM metres, a Gaussian KDE is fitted on them (on a random sample of
+    ``max_fit`` points for large routes, to keep it fast), and each report gets:
+
+    - ``density``: KDE value at its position (low = rarely visited by this route);
+    - ``anomaly``: True when the density is below the ``percentile``-th percentile
+      of the route's densities, i.e. the least travelled ``percentile`` % of positions.
+
+    Returns a copy of ``route`` with the two columns. Note that the KDE includes
+    the trip being scored, so a trip unlike all the others still raises the
+    density a little where it passes.
+    """
+    x, y, _ = to_utm(route["LAT"].to_numpy(), route["LON"].to_numpy())
+    xy = np.vstack([x, y])
+    fit = xy
+    if xy.shape[1] > max_fit:
+        fit = xy[:, np.random.default_rng(seed).choice(xy.shape[1], max_fit, replace=False)]
+    density = stats.gaussian_kde(fit)(xy)
+    out = route.copy()
+    out["density"] = density
+    out["anomaly"] = density < np.percentile(density, percentile)
+    return out
 
 
 def route_kde(lon, lat, pad=0.5, n=100):
