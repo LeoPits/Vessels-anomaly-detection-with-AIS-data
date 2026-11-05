@@ -70,7 +70,7 @@ assignment are cached in `data/cache/`: delete those files after changing the da
 
 ### Known limitations
 
-- A report is "stationary" only when its computed speed is exactly 0 m/s, so moored vessels with GPS jitter are missed as waypoint candidates.
+- "Stationary" means a computed speed of exactly 0 m/s. This is a deliberate choice to keep the number of waypoint candidates (and DBSCAN cost) low; moored vessels with GPS jitter are therefore not candidates. Larger thresholds are explored in `03_data_quality.ipynb` and can be adopted if the computation holds.
 - Tracks are not split at data gaps: a vessel silent for weeks yields one long track, and entry/exit points are only its first and last report.
 - No filtering of impossible position jumps or of non-vessel/invalid MMSIs (base stations, aids to navigation).
 - Waypoint names (`WP_n`) depend on the data and parameters; DBSCAN `eps` is in standard deviations, not metres.
