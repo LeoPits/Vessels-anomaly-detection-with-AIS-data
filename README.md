@@ -33,6 +33,7 @@ interrupted download restarts where it stopped. `data/` is ignored by git.
 |---|---|---|
 | `notebooks/02_route_extraction.ipynb` | `data/hawaii_2020Q1.parquet` | `python scripts/download_noaa.py --start 2020-01-01 --end 2020-03-30 --region hawaii_2020Q1` (90 files, ~22 GB downloaded, ~100 MB kept) |
 | `notebooks/01_extract_ais_data.ipynb` | zips in `data/raw/hawaii_2021_01/` | `python scripts/download_noaa.py --start 2021-01-01 --end 2021-01-31 --region hawaii_2021_01 --keep-zips` |
+| `notebooks/03_data_quality.ipynb` | `data/hawaii_2020Q1.parquet` (or the days already in `data/raw/hawaii_2020Q1/`) | same download as notebook 02 |
 | `scripts/learn_motion_patterns.py --noaa` | any NOAA `.parquet`/`.csv` | — |
 | `scripts/track_imm.py --parquet`, `learn_motion_patterns.py --parquet` | AIA Denmark parquet (`denmark_2023-06-05_point-based.parquet`, not public) | — |
 
