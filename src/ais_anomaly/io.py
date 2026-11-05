@@ -11,6 +11,31 @@ import pandas as pd
 NOAA_URL = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{d:%Y}/AIS_{d:%Y_%m_%d}.zip"
 """Daily US-wide AIS files (one-minute reports). Verified available for 2015-2023."""
 
+# shortcut: repo root from the source location, valid for the editable install (pip -e .);
+# pass out_dir explicitly if the package is ever installed normally
+OUTPUTS = Path(__file__).resolve().parents[2] / "outputs"
+
+
+def save_figure(fig, name, out_dir=OUTPUTS):
+    """Save a matplotlib figure (.png), folium map or holoviews/hvplot plot (.html).
+
+    Returns the written path, e.g. ``outputs/02_waypoint_hulls.png``.
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if hasattr(fig, "savefig"):
+        path = out_dir / f"{name}.png"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+    elif type(fig).__module__.startswith("folium"):
+        path = out_dir / f"{name}.html"
+        fig.save(path)
+    else:
+        import holoviews as hv  # only needed for interactive plots
+
+        path = out_dir / f"{name}.html"
+        hv.save(fig, path)
+    return path
+
 
 def filter_bbox(df, lat_min, lat_max, lon_min, lon_max):
     """Keep rows inside the bounding box (inclusive)."""

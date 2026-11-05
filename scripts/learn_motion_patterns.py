@@ -17,7 +17,7 @@ import pandas as pd
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import EKF
 from ais_anomaly.geo import from_utm, to_utm
-from ais_anomaly.io import read_noaa, read_vessel_parquet
+from ais_anomaly.io import read_noaa, read_vessel_parquet, save_figure
 from ais_anomaly.preprocessing import NOAA_COLUMNS, preprocess, sample_time
 
 MODELS = {
@@ -86,6 +86,7 @@ def main():
         a.legend()
         a.grid(True)
     plt.tight_layout()
+    print("saved", save_figure(fig, f"motion_patterns_{args.model}_{args.vid if args.parquet else args.mmsi}"))
     plt.show()
 
 

@@ -7,6 +7,7 @@ import numpy as np
 
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters.mhe import mhe
+from ais_anomaly.io import save_figure
 
 
 def main():
@@ -36,6 +37,7 @@ def main():
     plt.title("Moving horizon estimation (CasADi)")
     plt.legend()
     plt.grid(True)
+    print("saved", save_figure(plt.gcf(), f"mhe_h{args.horizon}"))
     plt.show()
 
 

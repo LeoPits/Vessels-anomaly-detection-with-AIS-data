@@ -42,6 +42,18 @@ def test_noaa_url():
     assert io.NOAA_URL.format(d=pd.Timestamp("2021-01-05")).endswith("/2021/AIS_2021_01_05.zip")
 
 
+def test_save_figure_png_and_folium(tmp_path):
+    import folium
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, _ = plt.subplots()
+    assert io.save_figure(fig, "plot", tmp_path).read_bytes()[:4] == b"\x89PNG"
+    assert "leaflet" in io.save_figure(folium.Map(), "map", tmp_path).read_text(encoding="utf-8").lower()
+
+
 def test_cached_computes_once(tmp_path):
     calls = []
     compute = lambda: calls.append(1) or {"a": 1}

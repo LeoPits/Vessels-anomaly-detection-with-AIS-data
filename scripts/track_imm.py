@@ -18,7 +18,7 @@ import numpy as np
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import imm_filter
 from ais_anomaly.geo import to_utm
-from ais_anomaly.io import read_vessel_parquet
+from ais_anomaly.io import read_vessel_parquet, save_figure
 from ais_anomaly.preprocessing import preprocess
 
 SIGMA, OMEGA = 0.1, 0.1
@@ -82,6 +82,7 @@ def main():
     ax2.set(xlabel="step", ylabel="probability", title="Mode probabilities")
     ax2.legend()
     plt.tight_layout()
+    print("saved", save_figure(fig, f"track_imm_real_{args.vid}" if args.parquet else f"track_imm_{args.scenario}"))
     plt.show()
 
 

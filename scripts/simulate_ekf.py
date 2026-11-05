@@ -13,6 +13,7 @@ import numpy as np
 
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import EKF
+from ais_anomaly.io import save_figure
 
 SCENARIOS = {
     "maneuver": dict(dt=60, steps=200, x0=[0, 0, 0.5, np.pi / 4, 0, 0],
@@ -63,6 +64,7 @@ def main():
     ax2.legend()
     ax2.grid(True)
     plt.tight_layout()
+    print("saved", save_figure(fig, f"simulate_ekf_{args.scenario}"))
     plt.show()
 
 
