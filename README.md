@@ -12,7 +12,7 @@ learns a statistical model for maritime traffic from AIS data in an unsupervised
 conda env create -f environment.yml      # creates the `ais` env and installs this package (pip -e .)
 conda activate ais
 nbstripout --install                     # strip notebook outputs on commit (filter is declared in .gitattributes)
-pytest                                   # 34 tests, synthetic data only, ~10 s
+pytest                                   # 43 tests, synthetic data only, ~10 s
 
 # download NOAA AIS data for Hawaii (see "Data" below), then open the notebooks
 python scripts/download_noaa.py --start 2020-01-01 --end 2020-03-30 --region hawaii_2020Q1
@@ -54,7 +54,8 @@ src/ais_anomaly/
   io.py              NOAA download, zip/CSV/parquet readers, pickle cache
   geo.py             haversine, lat/lon <-> UTM (pyproj)
   preprocessing.py   single-vessel cleaning and 1 s spline resampling
-  routes.py          waypoints (DBSCAN + convex hull), route extraction, KDE
+  cleaning.py        MMSI categories, impossible-jump filter
+  routes.py          voyages, waypoints (DBSCAN + convex hull), route extraction, KDE
   motion_models.py   CT, CT+acceleration, CV, CTRV-ext, linear CV/CT for IMM, Jacobians
   filters/           EKF, IMM, MHE (CasADi)
 scripts/             command-line entry points (see --help)
@@ -72,8 +73,8 @@ assignment are cached in `data/cache/`: delete those files after changing the da
 
 - "Stationary" means a computed speed of exactly 0 m/s. This is a deliberate choice to keep the number of waypoint candidates (and DBSCAN cost) low; moored vessels with GPS jitter are therefore not candidates. Larger thresholds are explored in `03_data_quality.ipynb` and can be adopted if the computation holds.
 - By default tracks are not split at data gaps and trips returning to the same waypoint are discarded (notebook 02 behaviour). `split_by_vessel(max_gap="60min")` cuts voyages at gaps and `extract_routes(loops=True)` keeps loops as routes `WP_a-WP_a`; their effect is measured in `03_data_quality.ipynb` (section 5).
-- Voyages that start or end at sea (AIS coverage lost offshore, not at the box edge) never become routes: on the first 11 days of 2020 this is ~95% of fishing traffic at sea.
-- No filtering of impossible position jumps or of non-vessel/invalid MMSIs (base stations, aids to navigation).
+- By default voyages that start or end at sea (AIS coverage lost offshore, not at the box edge) never become routes: ~95% of fishing traffic at sea on the first days of 2020. `extract_routes(open_ends=True)` keeps them as routes `SEA-WP_a` / `WP_a-SEA`; with voyages, loops and open ends, ~96% of the traffic at sea falls in a route (first 16 days).
+- Notebook 02 does not filter reports yet. `cleaning.ships_only` drops non-ship MMSIs (base stations, aids to navigation, invalid ids) and `cleaning.drop_jumps(max_speed_kn=50)` drops impossible position jumps (e.g. two transmitters sharing an MMSI); measured in `03_data_quality.ipynb` (sections 1-2).
 - Waypoint names (`WP_n`) depend on the data and parameters; DBSCAN `eps` is in standard deviations, not metres.
 - The KDE of a route is computed and plotted, but no anomaly score is assigned to reports yet.
 - The EKF scripts keep the MATLAB measurement noise `R = 0`; set a realistic `R` to estimate turn rate and acceleration on noisy data.

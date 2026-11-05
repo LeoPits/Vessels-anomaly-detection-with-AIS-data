@@ -55,6 +55,15 @@ def test_extract_routes_loops_are_optional():
     assert len(found[0]) == 4  # last report in WP_0 + 3 at sea
 
 
+def test_extract_routes_open_ends():
+    v = _with_waypoints(["-1", "-1", "WP_0", "WP_0", "-1", "-1", "-1"])
+    assert routes.extract_routes(v) == []
+    found = routes.extract_routes(v, open_ends=True)
+    assert [r["Route"].iloc[0] for r in found] == ["SEA-WP_0", "WP_0-SEA"]
+    assert [len(r) for r in found] == [2, 4]  # 2 at sea before arriving; last WP_0 report + 3 at sea
+    assert routes.extract_routes(_with_waypoints(["-1"] * 5), loops=True, open_ends=True) == []
+
+
 def test_speed_status():
     v = routes.add_speed_status(routes.split_by_vessel(_fleet())[0])
     assert (v["status"].iloc[1:30] == "stationary").all()

@@ -15,6 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from .geo import haversine
 
 NO_WAYPOINT = "-1"
+OPEN_SEA = "SEA"  # route end where the track starts or ends at sea
 
 
 def split_by_vessel(ais, min_points=50, max_gap=None):
@@ -108,7 +109,7 @@ def assign_waypoints(vessel, hulls):
     return pd.Series(names, index=vessel.index, name="waypoints")
 
 
-def extract_routes(vessel, loops=False):
+def extract_routes(vessel, loops=False, open_ends=False):
     """Cut a vessel track into routes between two different waypoints.
 
     ``vessel`` needs a ``waypoints`` column. A route is a run of '-1' reports
@@ -117,21 +118,30 @@ def extract_routes(vessel, loops=False):
 
     With ``loops=True`` a trip that leaves a waypoint and comes back to it (e.g. a
     fishing trip) is kept as route 'WP_a-WP_a' instead of being discarded.
+
+    With ``open_ends=True`` a track that starts at sea and reaches a waypoint
+    becomes route 'SEA-WP_a', and one that leaves a waypoint and ends at sea
+    becomes 'WP_a-SEA'. Offshore, AIS coverage is lost long before the area's
+    edge, so most fishing trips look like this. A track never inside a waypoint
+    has no anchor and is still skipped.
     """
     wp = vessel["waypoints"].to_numpy()
-    routes, i, n = [], 0, len(wp)
-    while i < n:
-        if wp[i] == NO_WAYPOINT:
-            start, start_wp = i, max(i - 1, 0)
-            while wp[i] == NO_WAYPOINT and i < n - 1:
-                i += 1
-            end, end_wp = i - 1, i
-            if (loops or wp[start_wp] != wp[end_wp]) and NO_WAYPOINT not in (wp[start_wp], wp[end_wp]):
-                route = vessel.iloc[start - 1:end + 1].copy()
-                route["Route"] = f"{wp[start_wp]}-{wp[end_wp]}"
-                routes.append(route.reset_index())
-        i += 1
-    return routes
+    n = len(wp)
+    at_sea = (wp == NO_WAYPOINT).astype(int)
+    edges = np.flatnonzero(np.diff(np.r_[0, at_sea, 0]))  # each at-sea run is [start, stop)
+    found = []
+    for start, stop in zip(edges[::2], edges[1::2]):
+        before = wp[start - 1] if start > 0 else OPEN_SEA
+        after = wp[stop] if stop < n else OPEN_SEA
+        if OPEN_SEA in (before, after):
+            if not open_ends or before == after:
+                continue
+        elif before == after and not loops:
+            continue
+        route = vessel.iloc[max(start - 1, 0):stop].copy()
+        route["Route"] = f"{before}-{after}"
+        found.append(route.reset_index())
+    return found
 
 
 def route_kde(lon, lat, pad=0.5, n=100):
