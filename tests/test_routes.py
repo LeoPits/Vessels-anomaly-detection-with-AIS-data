@@ -30,6 +30,31 @@ def test_split_by_vessel_drops_short_tracks():
     assert [v["MMSI"].iloc[0] for v in vessels] == [1, 2, 3]
 
 
+def test_split_by_vessel_cuts_voyages_at_gaps():
+    v = _voyage(1, "2020-01-01", A, B)
+    v.loc[50:, "BaseDateTime"] += pd.Timedelta("3h")  # silence in the middle of the sea leg
+    shuffled = v.sample(frac=1, random_state=0)  # input order must not matter
+    assert len(routes.split_by_vessel(shuffled)) == 1
+    voyages = routes.split_by_vessel(shuffled, min_points=20, max_gap="60min")
+    assert [len(p) for p in voyages] == [50, 50]
+    assert [p["voyage"].iloc[0] for p in voyages] == [0, 1]
+    assert voyages[0]["BaseDateTime"].is_monotonic_increasing
+    assert routes.split_by_vessel(shuffled, min_points=60, max_gap="60min") == []
+
+
+def _with_waypoints(seq):
+    t = pd.Timestamp("2020-01-01") + pd.to_timedelta(np.arange(len(seq)), unit="min")
+    return pd.DataFrame({"BaseDateTime": t, "waypoints": seq})
+
+
+def test_extract_routes_loops_are_optional():
+    v = _with_waypoints(["WP_0", "WP_0", "-1", "-1", "-1", "WP_0", "-1", "-1", "WP_1"])
+    assert [r["Route"].iloc[0] for r in routes.extract_routes(v)] == ["WP_0-WP_1"]
+    found = routes.extract_routes(v, loops=True)
+    assert [r["Route"].iloc[0] for r in found] == ["WP_0-WP_0", "WP_0-WP_1"]
+    assert len(found[0]) == 4  # last report in WP_0 + 3 at sea
+
+
 def test_speed_status():
     v = routes.add_speed_status(routes.split_by_vessel(_fleet())[0])
     assert (v["status"].iloc[1:30] == "stationary").all()

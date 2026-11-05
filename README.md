@@ -71,7 +71,8 @@ assignment are cached in `data/cache/`: delete those files after changing the da
 ### Known limitations
 
 - "Stationary" means a computed speed of exactly 0 m/s. This is a deliberate choice to keep the number of waypoint candidates (and DBSCAN cost) low; moored vessels with GPS jitter are therefore not candidates. Larger thresholds are explored in `03_data_quality.ipynb` and can be adopted if the computation holds.
-- Tracks are not split at data gaps: a vessel silent for weeks yields one long track, and entry/exit points are only its first and last report.
+- By default tracks are not split at data gaps and trips returning to the same waypoint are discarded (notebook 02 behaviour). `split_by_vessel(max_gap="60min")` cuts voyages at gaps and `extract_routes(loops=True)` keeps loops as routes `WP_a-WP_a`; their effect is measured in `03_data_quality.ipynb` (section 5).
+- Voyages that start or end at sea (AIS coverage lost offshore, not at the box edge) never become routes: on the first 11 days of 2020 this is ~95% of fishing traffic at sea.
 - No filtering of impossible position jumps or of non-vessel/invalid MMSIs (base stations, aids to navigation).
 - Waypoint names (`WP_n`) depend on the data and parameters; DBSCAN `eps` is in standard deviations, not metres.
 - The KDE of a route is computed and plotted, but no anomaly score is assigned to reports yet.

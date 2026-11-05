@@ -17,9 +17,25 @@ from .geo import haversine
 NO_WAYPOINT = "-1"
 
 
-def split_by_vessel(ais, min_points=50):
-    """One DataFrame per MMSI, keeping vessels with at least ``min_points`` reports."""
-    return [g.reset_index(drop=True) for _, g in ais.groupby("MMSI", sort=False) if len(g) >= min_points]
+def split_by_vessel(ais, min_points=50, max_gap=None):
+    """One DataFrame per MMSI, sorted by time, keeping tracks with at least ``min_points`` reports.
+
+    With ``max_gap`` (e.g. ``"60min"``) each MMSI track is also cut wherever two
+    consecutive reports are more than ``max_gap`` apart. Every piece is a voyage
+    with its own entry and exit point, routes never span a silence, and a
+    ``voyage`` column numbers the pieces of the same MMSI. ``min_points`` then
+    applies to each voyage. ``None`` (default) keeps one track per MMSI.
+    """
+    out = []
+    for _, g in ais.groupby("MMSI", sort=False):
+        g = g.sort_values("BaseDateTime", kind="stable")
+        if max_gap is None:
+            pieces = [g]
+        else:
+            new_voyage = pd.to_datetime(g["BaseDateTime"]).diff() > pd.Timedelta(max_gap)
+            pieces = [p.assign(voyage=k) for k, (_, p) in enumerate(g.groupby(new_voyage.cumsum().to_numpy()))]
+        out += [p.reset_index(drop=True) for p in pieces if len(p) >= min_points]
+    return out
 
 
 def add_speed_status(vessel):
@@ -92,12 +108,15 @@ def assign_waypoints(vessel, hulls):
     return pd.Series(names, index=vessel.index, name="waypoints")
 
 
-def extract_routes(vessel):
+def extract_routes(vessel, loops=False):
     """Cut a vessel track into routes between two different waypoints.
 
     ``vessel`` needs a ``waypoints`` column. A route is a run of '-1' reports
     between two distinct waypoints; the returned rows include the last report in
     the start waypoint and get a ``Route`` column 'WP_a-WP_b'.
+
+    With ``loops=True`` a trip that leaves a waypoint and comes back to it (e.g. a
+    fishing trip) is kept as route 'WP_a-WP_a' instead of being discarded.
     """
     wp = vessel["waypoints"].to_numpy()
     routes, i, n = [], 0, len(wp)
@@ -107,7 +126,7 @@ def extract_routes(vessel):
             while wp[i] == NO_WAYPOINT and i < n - 1:
                 i += 1
             end, end_wp = i - 1, i
-            if wp[start_wp] != wp[end_wp] and NO_WAYPOINT not in (wp[start_wp], wp[end_wp]):
+            if (loops or wp[start_wp] != wp[end_wp]) and NO_WAYPOINT not in (wp[start_wp], wp[end_wp]):
                 route = vessel.iloc[start - 1:end + 1].copy()
                 route["Route"] = f"{wp[start_wp]}-{wp[end_wp]}"
                 routes.append(route.reset_index())
