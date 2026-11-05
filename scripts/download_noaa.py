@@ -5,7 +5,10 @@ box and saved as data/raw/<region>/AIS_YYYY_MM_DD.parquet; the zip is then
 deleted. Days already done are skipped, so the command can be re-run after an
 interruption. Finally all days are merged into data/<region>.parquet.
 
-Example (the period used in notebooks/02_route_extraction.ipynb):
+Examples:
+  # January 2020, the data used by the notebooks
+  python scripts/download_noaa.py --start 2020-01-01 --end 2020-01-31 --region hawaii_2020Q1 --out hawaii_2020_01
+  # the whole first quarter (days already downloaded are skipped)
   python scripts/download_noaa.py --start 2020-01-01 --end 2020-03-30 --region hawaii_2020Q1
 """
 
@@ -28,6 +31,8 @@ def main():
     p.add_argument("--region", default="hawaii", help="name of the output files")
     p.add_argument("--bbox", nargs=4, type=float, default=HAWAII, metavar=("LAT_MIN", "LAT_MAX", "LON_MIN", "LON_MAX"))
     p.add_argument("--keep-zips", action="store_true", help="keep the downloaded national zips")
+    p.add_argument("--out", help="name of the merged file data/<out>.parquet (default: --region); "
+                                 "e.g. merge only January from a Q1 region already downloaded")
     args = p.parse_args()
 
     days = pd.date_range(args.start, args.end, freq="D")
@@ -42,7 +47,7 @@ def main():
 
     if not done:
         raise SystemExit("nothing downloaded")
-    out = DATA / f"{args.region}.parquet"
+    out = DATA / f"{args.out or args.region}.parquet"
     pd.concat(map(pd.read_parquet, done), ignore_index=True).to_parquet(out, index=False)
     print(f"saved {out}")
 
