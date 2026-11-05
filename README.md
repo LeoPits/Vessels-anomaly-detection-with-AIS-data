@@ -12,7 +12,7 @@ learns a statistical model for maritime traffic from AIS data in an unsupervised
 conda env create -f environment.yml      # creates the `ais` env and installs this package (pip -e .)
 conda activate ais
 nbstripout --install                     # strip notebook outputs on commit (filter is declared in .gitattributes)
-pytest                                   # 43 tests, synthetic data only, ~10 s
+pytest                                   # 47 tests, synthetic data only, ~10 s
 
 # download NOAA AIS data for Hawaii (see "Data" below), then open the notebooks
 python scripts/download_noaa.py --start 2020-01-01 --end 2020-01-31 --region hawaii_2020Q1 --out hawaii_2020_01
@@ -56,6 +56,7 @@ src/ais_anomaly/
   preprocessing.py   single-vessel cleaning and 1 s spline resampling
   cleaning.py        MMSI categories, impossible-jump filter
   routes.py          voyages, waypoints (DBSCAN + convex hull), route extraction, KDE
+  maps.py            folium maps: waypoint polygons, one line per trip
   motion_models.py   CT, CT+acceleration, CV, CTRV-ext, linear CV/CT for IMM, Jacobians
   filters/           EKF, IMM, MHE (CasADi)
 scripts/             command-line entry points (see --help)
