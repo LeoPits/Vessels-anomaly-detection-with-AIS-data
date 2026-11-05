@@ -11,8 +11,11 @@ from ..motion_models import numerical_jacobian
 
 
 class EKF:
-    def __init__(self, f, h, x0, P0, Q, R, f_jacobian=None, h_jacobian=None):
+    def __init__(self, f, h, x0, P0, Q, R, f_jacobian=None, h_jacobian=None, residual=None):
+        """``residual(z, h(x))`` defaults to plain subtraction; use
+        ``motion_models.measure_residual`` when the measurement holds an angle."""
         self.f, self.h = f, h
+        self.residual = residual or np.subtract
         self.f_jacobian = f_jacobian or (lambda x: numerical_jacobian(f, x))
         self.h_jacobian = h_jacobian or (lambda x: numerical_jacobian(h, x))
         self.x = np.asarray(x0, dtype=float)
@@ -28,7 +31,7 @@ class EKF:
 
     def correct(self, z):
         H = self.h_jacobian(self.x)
-        y = np.asarray(z) - self.h(self.x)
+        y = self.residual(np.asarray(z, dtype=float), self.h(self.x))
         S = H @ self.P @ H.T + self.R
         # pinv: the original scripts use zero R and P0, which can make S singular
         K = self.P @ H.T @ np.linalg.pinv(S)

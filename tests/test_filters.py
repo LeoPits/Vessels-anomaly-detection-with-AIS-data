@@ -5,6 +5,7 @@ import numpy as np
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import EKF, imm_filter
 from ais_anomaly.filters.mhe import mhe
+from ais_anomaly.geo import wrap_angle
 
 
 def test_ekf_tracks_noisy_ct_trajectory():
@@ -22,6 +23,32 @@ def test_ekf_tracks_noisy_ct_trajectory():
         ekf.correct(z)
         errors.append(np.hypot(*(ekf.x[:2] - x[:2])))
     assert np.mean(errors[-50:]) < 5.0  # below the 5 m measurement noise
+
+
+def test_ekf_heading_crossing_pi_does_not_jump():
+    # a vessel turning in circles: its heading crosses +-pi every lap
+    rng = np.random.default_rng(3)
+    dt = 5.0
+    x = np.array([0, 0, 5.0, 3.0, 0.05, 0.0])
+    R = np.diag([4.0, 4.0, 0.01, 1e-3])
+    ekf = EKF(partial(mm.ct, dt=dt), mm.measure, x, np.eye(6) * 1e-3, np.diag([0.1, 0.1, 1e-4, 1e-5, 1e-6, 1e-8]), R,
+              f_jacobian=partial(mm.ct_jacobian, dt=dt), h_jacobian=lambda _: mm.measure_jacobian(6),
+              residual=mm.measure_residual)
+    errors = []
+    for _ in range(200):  # ~8 laps
+        x = mm.ct(x, dt)
+        z = mm.measure(x) + rng.multivariate_normal(np.zeros(4), R)
+        z[3] = wrap_angle(z[3])  # AIS-like angle in [-pi, pi)
+        ekf.predict()
+        ekf.correct(z)
+        errors.append(np.hypot(*(ekf.x[:2] - x[:2])))
+    assert max(errors) < 10.0
+    assert abs(ekf.x[4] - 0.05) < 0.005  # turn rate recovered
+
+
+def test_measure_residual_wraps_heading_only():
+    d = mm.measure_residual([0, 0, 0, -3.1], [1, 1, 1, 3.1])
+    np.testing.assert_allclose(d, [-1, -1, -1, 2 * np.pi - 6.2])
 
 
 def _imm_scenario(missing=False, seed=1):

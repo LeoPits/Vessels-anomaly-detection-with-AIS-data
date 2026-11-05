@@ -47,19 +47,32 @@ def waypoint_candidates(vessels):
     return pd.concat([po, en, ex]).drop_duplicates(subset=["LAT", "LON"], keep="first")
 
 
-def cluster_waypoints(candidates, eps=0.2, min_samples=20):
+def cluster_waypoints(candidates, eps=0.2, min_samples=20, decimals=3):
     """DBSCAN on standardised LAT/LON; returns ``(labels, hulls)``.
 
-    ``hulls`` has columns ``name`` ('WP_0', ...) and ``hull`` (convex hull of each
-    cluster, lon/lat). Label -1 (noise) gets no hull. eps/min_samples are tuned by hand.
+    ``labels`` has one entry per candidate row (-1 = noise). ``hulls`` has columns
+    ``name`` ('WP_0', ...) and ``hull`` (convex hull of each cluster, lon/lat).
+    eps (in standard deviations) and min_samples are tuned by hand.
+
+    Months of data give hundreds of thousands of candidates, and DBSCAN memory
+    grows with the size of each neighbourhood. So candidates are first snapped to
+    a grid of ``decimals`` decimal degrees (3 = ~100 m, far below waypoint size)
+    and DBSCAN runs on the grid cells, each weighted by how many candidates it
+    holds: density is counted as on the raw points. ``decimals=None`` disables it.
     """
-    scaled = StandardScaler().fit_transform(candidates[["LAT", "LON"]])
-    labels = DBSCAN(eps=eps, min_samples=min_samples).fit(scaled).labels_
-    points = candidates[["LON", "LAT"]].to_numpy()
-    cluster_ids = [lab for lab in pd.unique(labels) if lab != -1]
+    pts = candidates[["LAT", "LON"]].to_numpy(dtype=float)
+    if decimals is not None:
+        pts = pts.round(decimals)
+    cells, inverse, counts = np.unique(pts, axis=0, return_inverse=True, return_counts=True)
+    scaled = StandardScaler().fit_transform(cells, sample_weight=counts)  # same scaling as on all points
+    cell_labels = DBSCAN(eps=eps, min_samples=min_samples).fit(scaled, sample_weight=counts).labels_
+    labels = cell_labels[inverse.ravel()]
+
+    cluster_ids = [lab for lab in pd.unique(labels) if lab != -1]  # order of first appearance, as before
+    lonlat = cells[:, ::-1]
     hulls = pd.DataFrame({
         "name": [f"WP_{i}" for i in range(len(cluster_ids))],
-        "hull": [MultiPoint(points[labels == lab]).convex_hull for lab in cluster_ids],
+        "hull": [MultiPoint(lonlat[cell_labels == lab]).convex_hull for lab in cluster_ids],
     })
     return labels, hulls
 

@@ -10,6 +10,23 @@ from pyproj import CRS, Transformer
 EARTH_RADIUS_M = 6371000.0
 
 
+def wrap_angle(a):
+    """Wrap angles (rad) to [-pi, pi)."""
+    return (np.asarray(a) + np.pi) % (2 * np.pi) - np.pi
+
+
+def course_to_math_angle(course):
+    """AIS course/heading (rad, clockwise from north) -> angle counter-clockwise from east.
+
+    The motion models move the vessel by ``v*cos(psi), v*sin(psi)`` along UTM
+    x (east) and y (north), so they need the mathematical angle. The MATLAB code
+    passed the AIS angle directly, sending the prediction in the wrong direction.
+    """
+    # shortcut: ignores UTM meridian convergence (true vs grid north, <= ~1 deg in Hawaii,
+    # up to 3*sin(lat) deg at zone edges); correct it with pyproj Proj.get_factors if it ever matters
+    return wrap_angle(np.pi / 2 - np.asarray(course))
+
+
 def haversine(lat1, lon1, lat2, lon2):
     """Great-circle distance in metres; works on scalars and arrays."""
     lat1, lon1, lat2, lon2 = map(np.radians, (lat1, lon1, lat2, lon2))

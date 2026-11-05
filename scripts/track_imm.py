@@ -17,7 +17,7 @@ import numpy as np
 
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import imm_filter
-from ais_anomaly.geo import to_utm
+from ais_anomaly.geo import course_to_math_angle, to_utm
 from ais_anomaly.io import read_vessel_parquet, save_figure
 from ais_anomaly.preprocessing import preprocess
 
@@ -54,7 +54,8 @@ def real(parquet, vid):
     x, y, _ = to_utm(track["lat"].to_numpy(), track["lon"].to_numpy())
     # standardised as in normalize_utm.m (MATLAB std uses N-1)
     x, y = (x - x.mean()) / x.std(ddof=1), (y - y.mean()) / y.std(ddof=1)
-    v, h = track["sog"].to_numpy(), track["heading"].to_numpy()
+    # velocity from SOG and COG in the x=east, y=north frame (MATLAB used the raw AIS heading)
+    v, h = track["sog"].to_numpy(), course_to_math_angle(track["cog"].to_numpy())
     truth = np.vstack([x, y, v * np.cos(h), v * np.sin(h)])
     return truth, truth[:2].copy(), np.ones(truth.shape[1])
 

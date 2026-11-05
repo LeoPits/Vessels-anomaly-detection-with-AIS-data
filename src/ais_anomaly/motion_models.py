@@ -9,6 +9,8 @@ Linear models for the IMM filter use ``[x, y, vx, vy]``.
 
 import numpy as np
 
+from .geo import wrap_angle
+
 
 # --- nonlinear models (EKF) -------------------------------------------------
 
@@ -85,6 +87,17 @@ def ctrv_ext(x, dt):
 def measure(x):
     """AIS measures position, speed and heading: the first 4 states (measureModel.m)."""
     return np.asarray(x)[:4]
+
+
+def measure_residual(z, z_hat):
+    """Measurement minus prediction with the heading difference wrapped to [-pi, pi).
+
+    Without the wrap a vessel crossing heading +-pi gives a ~2*pi innovation and
+    the filter jumps. Pass it to ``EKF(residual=...)``.
+    """
+    d = np.asarray(z, dtype=float) - np.asarray(z_hat, dtype=float)
+    d[3] = wrap_angle(d[3])
+    return d
 
 
 def measure_jacobian(n_states):

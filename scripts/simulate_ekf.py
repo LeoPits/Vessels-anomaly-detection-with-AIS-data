@@ -28,7 +28,7 @@ SCENARIOS = {
 def run(dt, steps, x0, Q, R, P0, maneuver, seed=6):
     rng = np.random.default_rng(seed)
     f = partial(mm.ct_accel, dt=dt)
-    ekf = EKF(f, mm.measure, x0, P0, Q, R, h_jacobian=lambda _: mm.measure_jacobian(6))
+    ekf = EKF(f, mm.measure, x0, P0, Q, R, h_jacobian=lambda _: mm.measure_jacobian(6), residual=mm.measure_residual)
     x = np.array(x0, dtype=float)
     truth, est = [x.copy()], [ekf.x.copy()]
     for k in range(1, steps):

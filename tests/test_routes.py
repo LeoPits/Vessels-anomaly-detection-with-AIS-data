@@ -56,6 +56,27 @@ def test_pipeline_finds_two_waypoints_and_routes():
     assert len(all_routes[0]) == 41  # 40 reports at sea + the last one in port
 
 
+def test_grid_snapping_keeps_the_same_waypoints():
+    candidates = routes.waypoint_candidates([routes.add_speed_status(v) for v in routes.split_by_vessel(_fleet())])
+    raw_labels, raw = routes.cluster_waypoints(candidates, eps=0.2, min_samples=2, decimals=None)
+    labels, snapped = routes.cluster_waypoints(candidates, eps=0.2, min_samples=2)
+    assert len(snapped) == len(raw) == 2
+    np.testing.assert_array_equal(labels, raw_labels)
+
+
+def test_grid_snapping_bounds_dbscan_size_on_dense_ports():
+    rng = np.random.default_rng(0)
+    # 60k jittered moored reports in two ports (~30 m spread) + sparse noise
+    port = lambda lat, lon, n: pd.DataFrame({"LAT": rng.normal(lat, 3e-4, n), "LON": rng.normal(lon, 3e-4, n)})
+    noise = pd.DataFrame({"LAT": rng.uniform(18, 22.5, 50), "LON": rng.uniform(-160, -150, 50)})
+    candidates = pd.concat([port(*A, 30_000), port(*B, 30_000), noise], ignore_index=True)
+    labels, hulls = routes.cluster_waypoints(candidates, eps=0.2, min_samples=20)
+    assert len(labels) == len(candidates)
+    assert len(hulls) == 2
+    assert (labels[:60_000] != -1).all()
+    assert len(np.unique(candidates[["LAT", "LON"]].round(3), axis=0)) < 200  # what DBSCAN actually sees
+
+
 def test_route_kde_peaks_on_the_data():
     rng = np.random.default_rng(0)
     lon, lat = rng.normal(-157, 0.1, 200), rng.normal(21, 0.1, 200)

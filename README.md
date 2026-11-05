@@ -12,7 +12,7 @@ learns a statistical model for maritime traffic from AIS data in an unsupervised
 conda env create -f environment.yml      # creates the `ais` env and installs this package (pip -e .)
 conda activate ais
 nbstripout --install                     # strip notebook outputs on commit (filter is declared in .gitattributes)
-pytest                                   # 24 tests, synthetic data only, ~20 s
+pytest                                   # 34 tests, synthetic data only, ~10 s
 
 # download NOAA AIS data for Hawaii (see "Data" below), then open the notebooks
 python scripts/download_noaa.py --start 2020-01-01 --end 2020-03-30 --region hawaii_2020Q1
@@ -76,7 +76,14 @@ tests/               pytest, synthetic data
 Bugs fixed in the port: `stateModelCV.m` used an undefined variable; `CTRV_ext_StateFcn.m` swapped speed and heading
 between input and output; the IMM mixing ignored the mode probabilities; `MHE.m` passed measurements to a solver
 without parameters and weighted the cost by covariances instead of their inverses; AIS heading 511 ("not available")
-was treated as an angle. Not ported: `gaussian_kernel.m` (unused; `scipy.stats.gaussian_kde` is used) and `untitled.mlx` (draft).
+was treated as an angle; the AIS angle (clockwise from north) was fed to models that expect counter-clockwise from
+east, so predictions moved the wrong way (now COG converted by `geo.course_to_math_angle`); the EKF heading innovation
+and the spline resampling of angles did not handle the 359° → 1° wrap.
+
+Waypoint clustering snaps candidates to a ~100 m grid (`decimals=3`) and weights each cell by its count before DBSCAN,
+so three months of data fit in memory while density is counted as on the raw points.
+
+Not ported: `gaussian_kernel.m` (unused; `scipy.stats.gaussian_kde` is used) and `untitled.mlx` (draft).
 `Route_extraction.ipynb` and the Colab copy `Route extraction from ais data.ipynb` were older versions of
 `02_route_extraction.ipynb`.
 

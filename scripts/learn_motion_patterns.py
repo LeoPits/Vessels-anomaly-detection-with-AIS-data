@@ -1,10 +1,14 @@
-"""EKF on a real AIS track to estimate speed, heading, turn rate and acceleration.
+"""EKF on a real AIS track to estimate speed, course, turn rate and acceleration.
 
 Was Learning_motion_patterns.m (CT model), Copy_of_Learning_motion_patterns.m
 (CTRV-ext model) and the "LEARNING MOTION PATTERNS ..." live scripts.
 
   --parquet PATH --vid ID    AIA parquet (Denmark), resampled at 1 s
   --noaa PATH --mmsi ID      NOAA data, .csv or .parquet (scripts/download_noaa.py)
+
+The measured angle is COG (direction of motion) converted to the models'
+convention (counter-clockwise from east); the MATLAB scripts used the raw AIS
+heading, which is clockwise from north and often missing (511).
 """
 
 import argparse
@@ -16,7 +20,7 @@ import pandas as pd
 
 from ais_anomaly import motion_models as mm
 from ais_anomaly.filters import EKF
-from ais_anomaly.geo import from_utm, to_utm
+from ais_anomaly.geo import course_to_math_angle, from_utm, to_utm, wrap_angle
 from ais_anomaly.io import read_noaa, read_vessel_parquet, save_figure
 from ais_anomaly.preprocessing import NOAA_COLUMNS, preprocess, sample_time
 
@@ -39,10 +43,10 @@ def run(track, model):
     f, jac, n, q = MODELS[model]
     dt = sample_time(track.index)
     x_utm, y_utm, crs = to_utm(track["lat"].to_numpy(), track["lon"].to_numpy())
-    z = np.vstack([x_utm, y_utm, track["sog"].to_numpy(), track["heading"].to_numpy()])
+    z = np.vstack([x_utm, y_utm, track["sog"].to_numpy(), course_to_math_angle(track["cog"].to_numpy())])
     x0 = np.r_[z[:, 0], np.zeros(n - 4)]
     ekf = EKF(partial(f, dt=dt), mm.measure, x0, 1e-5 * np.eye(n), np.diag(q), np.zeros((4, 4)),
-              f_jacobian=partial(jac, dt=dt) if jac else None, h_jacobian=lambda _: mm.measure_jacobian(n))
+              f_jacobian=partial(jac, dt=dt) if jac else None, h_jacobian=lambda _: mm.measure_jacobian(n), residual=mm.measure_residual)
     est = np.zeros((n, z.shape[1]))
     est[:, 0] = x0
     for k in range(1, z.shape[1]):
@@ -77,8 +81,8 @@ def main():
     ax[0, 1].plot(hours, est[2], "b--", label="estimated")
     ax[0, 1].set(xlabel="t [h]", ylabel="speed [m/s]", title="Speed")
     ax[1, 0].plot(hours, z[3], "r", label="measured")
-    ax[1, 0].plot(hours, est[3], "b--", label="estimated")
-    ax[1, 0].set(xlabel="t [h]", ylabel="heading [rad]", title="Heading")
+    ax[1, 0].plot(hours, wrap_angle(est[3]), "b--", label="estimated")
+    ax[1, 0].set(xlabel="t [h]", ylabel="course [rad, from east]", title="Course over ground")
     ax[1, 1].plot(hours, est[4], label="turn rate [rad/s]")
     ax[1, 1].plot(hours, est[5], label="acceleration [m/s²]" if args.model == "ct" else "speed drift")
     ax[1, 1].set(xlabel="t [h]", title="Estimated turn rate and acceleration")
