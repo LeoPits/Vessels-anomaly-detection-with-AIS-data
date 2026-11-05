@@ -9,7 +9,7 @@ def waypoint_map(hulls, center=(21, -158), zoom=8):
     hulls: DataFrame with columns "name" (str) and "hull" (shapely geometry), as returned by
     ais_anomaly.routes.cluster_waypoints. Returns the folium.Map.
     """
-    m = folium.Map(center, zoom_start=zoom)
+    m = folium.Map(center, zoom_start=zoom)  # OpenStreetMap: CartoDB tiles now need an API key
     for name, hull in zip(hulls["name"], hulls["hull"]):
         folium.GeoJson(hull).add_child(folium.Popup(name)).add_to(m)
     return m
