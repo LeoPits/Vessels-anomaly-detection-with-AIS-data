@@ -12,7 +12,7 @@ learns a statistical model for maritime traffic from AIS data in an unsupervised
 conda env create -f environment.yml      # creates the `ais` env and installs this package (pip -e .)
 conda activate ais
 nbstripout --install                     # strip notebook outputs on commit (filter is declared in .gitattributes)
-pytest                                   # 47 tests, synthetic data only, ~10 s
+pytest                                   # 49 tests, synthetic data only, ~10 s
 
 # download NOAA AIS data for Hawaii (see "Data" below), then open the notebooks
 python scripts/download_noaa.py --start 2020-01-01 --end 2020-01-31 --region hawaii_2020Q1 --out hawaii_2020_01
@@ -70,14 +70,24 @@ Every script and notebook saves its figures through `ais_anomaly.io.save_figure`
 `02_waypoint_hulls.png`, `02_waypoints_map.html`, `track_imm_missing.png`. The DBSCAN result and the waypoint
 assignment are cached in `data/cache/`: delete those files after changing the data or the parameters.
 
+### Route pipeline (notebook 02)
+
+Parameters chosen on January 2020 in `03_data_quality.ipynb` and set in the *Parameters* cell of `02_route_extraction.ipynb`:
+
+1. **Cleaning**: ships only (`cleaning.ships_only`) and no impossible jumps (`cleaning.drop_jumps`, 50 kn).
+2. **Voyages**: each vessel track is cut at silences longer than 60 min (`routes.split_by_vessel(max_gap="60min")`), voyages with >= 50 reports.
+3. **Waypoints**: speed from positions, stationary reports (speed exactly 0) + first/last report of each voyage, DBSCAN (`eps=0.2` std, `min_samples=20`) and convex hulls `WP_n`.
+4. **Routes**: runs of reports at sea between two waypoints `WP_a-WP_b`, loops `WP_a-WP_a` and open ends `SEA-WP_a` / `WP_a-SEA` (AIS coverage is lost offshore). On January 2020: 93 routes, 2,473 trips, 94.5 % of the traffic at sea.
+5. **Anomaly scoring** (`routes.score_route`): KDE of each route with >= 10 trips (UTM metres); reports below the 5th percentile of density are anomalous; trips with >= 20 reports are ranked by their share of anomalous reports.
+
 ### Known limitations
 
-- "Stationary" means a computed speed of exactly 0 m/s. This is a deliberate choice to keep the number of waypoint candidates (and DBSCAN cost) low; moored vessels with GPS jitter are therefore not candidates. Larger thresholds are explored in `03_data_quality.ipynb` and can be adopted if the computation holds.
-- By default tracks are not split at data gaps and trips returning to the same waypoint are discarded (notebook 02 behaviour). `split_by_vessel(max_gap="60min")` cuts voyages at gaps and `extract_routes(loops=True)` keeps loops as routes `WP_a-WP_a`; their effect is measured in `03_data_quality.ipynb` (section 5).
-- By default voyages that start or end at sea (AIS coverage lost offshore, not at the box edge) never become routes: ~95% of fishing traffic at sea on the first days of 2020. `extract_routes(open_ends=True)` keeps them as routes `SEA-WP_a` / `WP_a-SEA`; with voyages, loops and open ends, ~96% of the traffic at sea falls in a route (first 16 days).
-- Notebook 02 does not filter reports yet. `cleaning.ships_only` drops non-ship MMSIs (base stations, aids to navigation, invalid ids) and `cleaning.drop_jumps(max_speed_kn=50)` drops impossible position jumps (e.g. two transmitters sharing an MMSI); measured in `03_data_quality.ipynb` (sections 1-2).
-- Waypoint names (`WP_n`) depend on the data and parameters; DBSCAN `eps` is in standard deviations, not metres.
-- The KDE of a route is computed and plotted, but no anomaly score is assigned to reports yet.
+- "Stationary" means a computed speed of exactly 0 m/s: a deliberate choice that keeps candidates and DBSCAN cost low. Moored vessels with GPS jitter are not candidates; above 0.25 kn waypoints appear in open sea (slow fishing), see `03_data_quality.ipynb`.
+- A port visit is counted whenever a report falls inside a waypoint, even without stopping (1,166 pass-throughs vs 2,023 stops in January 2020).
+- DBSCAN `eps` is in standard deviations, not metres: the south coast of Oahu (Honolulu, Pearl Harbor) is a single waypoint. Waypoint numbers `WP_n` change with the data and parameters, so the example routes in notebook 02 are named for January 2020.
+- One KDE per route mixes vessel types: in January 2020 the most anomalous trips are cruise ships on routes travelled mostly by tugs and ferries. A KDE per route and vessel type is the natural next step.
+- The KDE of a route includes the trip being scored, and is fitted on at most 5,000 sampled reports per route.
+- `cleaning.drop_jumps` trusts the first report of each MMSI.
 - The EKF scripts keep the MATLAB measurement noise `R = 0`; set a realistic `R` to estimate turn rate and acceleration on noisy data.
 
 ### Where the MATLAB code went
