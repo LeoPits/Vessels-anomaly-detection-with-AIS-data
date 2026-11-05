@@ -59,7 +59,22 @@ src/ais_anomaly/
 scripts/             command-line entry points (see --help)
 notebooks/           exploratory notebooks, outputs stripped
 tests/               pytest, synthetic data
+data/                downloaded AIS data and cache (git-ignored)
+outputs/             figures (PNG) and interactive maps (HTML) written by scripts and notebooks (git-ignored)
 ```
+
+Every script and notebook saves its figures through `ais_anomaly.io.save_figure` into `outputs/`, e.g.
+`02_waypoint_hulls.png`, `02_waypoints_map.html`, `track_imm_missing.png`. The DBSCAN result and the waypoint
+assignment are cached in `data/cache/`: delete those files after changing the data or the parameters.
+
+### Known limitations
+
+- A report is "stationary" only when its computed speed is exactly 0 m/s, so moored vessels with GPS jitter are missed as waypoint candidates.
+- Tracks are not split at data gaps: a vessel silent for weeks yields one long track, and entry/exit points are only its first and last report.
+- No filtering of impossible position jumps or of non-vessel/invalid MMSIs (base stations, aids to navigation).
+- Waypoint names (`WP_n`) depend on the data and parameters; DBSCAN `eps` is in standard deviations, not metres.
+- The KDE of a route is computed and plotted, but no anomaly score is assigned to reports yet.
+- The EKF scripts keep the MATLAB measurement noise `R = 0`; set a realistic `R` to estimate turn rate and acceleration on noisy data.
 
 ### Where the MATLAB code went
 
